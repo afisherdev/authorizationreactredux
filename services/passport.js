@@ -1,14 +1,16 @@
 const passport = require('passport');
-const keys = require('../config/keys');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
-const LocalStrategy = require('passport-local');
-const User = require('../models/user');
+const keys = require('../config/keys');
+const LocalStrategy = require('passport-local').Strategy;
+const User = mongoose.model('users');
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 
 //==============Strategy Options==============
-const localOptions = { usernameField: 'email' };
+const localOptions = {
+  usernameField: 'email'
+};
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromHeader('authorization'),
   secretOrKey: keys.jwtSecret
@@ -48,20 +50,31 @@ passport.deserializeUser((id, done) => {
 const localLogin = new LocalStrategy(localOptions, function(email, password, done) {
     console.log("Starting to find User")
     User.findOne({ email: email }, function(err, user) {
-      if (err) { return done(err); }
-      if (!user) { return done(null, false, { message: 'Either your email or your password were incorrect.' } ); }
-
+      if (err) {
+        console.log("error finding user")
+        return done(err);
+      }
+      if (!user) {
+        console.log("Couldn't find user")
+        return done(null, false, {
+          message: 'Either your email or your password were incorrect.'
+        })
       user.comparePassword(password, function(err, isMatch) {
         console.log("started compare password function")
-        if (err) { return done(err); }
+        if (err) {
+          console.log('there was an error comparing the password')
+          return done(err);
+        }
         if (!isMatch) {
-          console.log(password)
-          console.log("it wasn't a match")
-          return done(null, false, { message: 'Either your email or your password were incorrect.' } ); }
-
-        return done(null, user);
-
-    });
+          console.log('the password didnt match')
+          return done(null, false, {
+            message: 'Either your email or your password were incorrect.'
+          });
+          console.log('login successful')
+          return done(null, user);
+        }
+      });
+    };
   });
 });
   //================= Google Strategy ================
